@@ -9,6 +9,7 @@ import numpy as np
 from timeit import default_timer as time
 import matplotlib.pyplot as plt
 from numpy import arange as arange
+import Thommy
 
 start = time()
 
@@ -31,7 +32,7 @@ sigma = complex(0, comp)
 def coul(x,t):
     val = []
     for arr in x:
-        val.append(complex(0,k * 1 / ( np.sqrt( rho ** 2 + ( arr + v * t - z0) ** 2 ))))
+        val.append(complex(0,k * 1 / ( np.sqrt( rho ** 2 + ( arr - v * t - z0) ** 2 ))))
     return np.array(val)
 
 
@@ -41,7 +42,7 @@ trial = coul([0,1,2,3,4,5],0)
 print(trial)
 '''
 #setting paramters of integration
-dt = 10 ** -2
+dt = 10 ** -3
 N = 10000 #number of grid points
 L = float(10)
 dx = L/(N-1)
@@ -74,16 +75,14 @@ print(B_upper_diag)
 print(B_lower_diag)
 '''
 
-m = True
+#m = True
 
-if m:
-    nu = coul(x_grid,0)
-    print(nu)
-
+#tree = coul(x_grid,0)
 #making time steps, updating coulumb term and recalculating rhs of matrix equation at each time step
 rhs = init
-for k in range(1):
-    nu = coul(x_grid,0)
+for k in range(int(tpoints)):
+    t = k * dt
+    nu = coul(x_grid,t)
     #print(nu)
     A_main_diag = np.array([1+ 2 * sigma * dt / dx ** 2] + [1 + 2 * sigma * dt / dx **2 - nu[i] for i in np.arange(0 , N -1)] )
     #print(A_main_diag)
@@ -91,14 +90,23 @@ for k in range(1):
     B_main_diag = np.array([-2 * sigma * dt / dx ** 2] + [-2 * sigma * dt / dx ** 2 + nu[i] for i in arange(0 , N-1)])
     #print(B_main_diag)
     #print(B_main_diag[0])
-
+    vec=[]
+    vec.append( B_upper_diag[0] * rhs[0] + B_lower_diag[0] * rhs[0] )
+    for i in range(len(B_lower_diag)):
+        vec.append(B_upper_diag[i] * rhs[i] + B_main_diag[i] * rhs[i] + B_lower_diag[i] * rhs[i])
+    
+        
+    rhs = Thommy.tridag_solver(A_upper_diag, A_main_diag,A_lower_diag,vec)
+    print(rhs)
 
 plt.figure()
 plt.plot(x_grid,init)
 plt.show()
 #debugging
 #print(init)
-
+plt.figure()
+plt.plot(x_grid,rhs)
+plt.show()
 
 
 #stopping run timer
